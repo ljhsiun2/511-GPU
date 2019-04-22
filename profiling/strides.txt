@@ -1,0 +1,14 @@
+sum is 1111.0 for stride 1
+sum is 1104.0 for stride 2
+sum is 1111.0 for stride 4
+sum is 1118.0 for stride 8
+sum is 1124.0 for stride 16
+sum is 1128.0 for stride 32
+sum is 1135.0 for stride 64
+sum is 1134.0 for stride 128
+sum is 1132.0 for stride 256
+sum is 1135.0 for stride 512
+sum is 1136.0 for stride 1024
+sum is 1139.0 for stride 2048
+sum is 1143.0 for stride 4096
+sum is 1147.0 for stride 8192
