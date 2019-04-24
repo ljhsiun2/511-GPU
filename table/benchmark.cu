@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
 
 	clock_t end = clock();
 
-	printf("%d blocks encrypted in %d/%d seconds.\n", ptSize >> 2, end-start, CLOCKS_PER_SEC);
+	printf("%d blocks encrypted in %lu/%lu seconds.\n", ptSize >> 2, end-start, CLOCKS_PER_SEC);
 
 	return 0;
 }
@@ -70,7 +70,7 @@ uint stringToByteArray(char *str, byte **array) {
 	*array = (byte *)malloc(len * sizeof(byte));
 	
 	for(i=0; i<len; i++)
-		sscanf(str + i*2, "%02X", *array+i);
+		sscanf(str + i*2, "%02hhX", *array+i);
 
 	return len;
 }

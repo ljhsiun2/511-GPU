@@ -275,7 +275,7 @@ void AES::encrypt_ecb(const uint *pt, uint *ct, uint n = 1) {
 	clock_t start = clock();
 	AES_encrypt<<<dimGrid, dimBlock>>>(cpt, cct, ce_sched, Nr);
 	clock_t end = clock();
-	printf("Encryption alone takes %d/%d seconds.\n", end-start, CLOCKS_PER_SEC);
+	printf("Encryption alone takes %ld/%ld seconds.\n", end-start, CLOCKS_PER_SEC);
 #else
 	AES_encrypt<<<dimGrid, dimBlock>>>(cpt, cct, ce_sched, Nr);
 #endif
@@ -329,7 +329,7 @@ void AES::encrypt_ecb_async(const uint *pt, uint *ct, uint n = 1) {
 		cudaError_t r = cudaMemcpyAsync(ct + offset, cct + offset, streamSize, cudaMemcpyDeviceToHost, stream[i]);
 	}
 
-	cudaThreadSynchronize();
+	cudaDeviceSynchronize();
 
 	cudaFree(cpt);
 	cudaFree(cct);

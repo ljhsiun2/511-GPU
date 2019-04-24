@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
 	aes->makeKey(key, keySize << 3, DIR_ENCRYPT);
 	int time = clock();
 	aes->encrypt(pt, ct);
-	printf("Encrypt takes %d cycles \n", clock()-time);
+	printf("Encrypt takes %lu cycles \n", clock()-time);
 
 	printHexArray(ct, 4);
 
@@ -53,7 +53,7 @@ uint stringToByteArray(char *str, byte **array) {
 	*array = (byte *)malloc(len * sizeof(byte));
 
 	for(i=0; i<len; i++)
-		sscanf(str + i*2, "%02X", *array+i);
+		sscanf(str + i*2, "%02hhX", *array+i);
 
 	return len;
 }
