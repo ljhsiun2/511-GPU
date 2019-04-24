@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
 		printf("Invalid AES key size.\n");
 		return 1;
 	}
-	printf("ptSize is %d\n", ptSize);
+	printf("ptSize is %d blocks\n", ptSize/4);
 	if(ptSize % 4 != 0) {
 		printf("Plaintext size must be a multiple of AES block size.\n");
 		return 1;

@@ -269,7 +269,7 @@ void AES::encrypt_ecb(const uint *pt, uint *ct, uint n = 1) {
 	blocks = n / threads;
     printf("using %d threads in %d blocks\n", threads, blocks);
 	dim3 dimBlock(32, 1, 1);
-	dim3 dimGrid(blocks, 1, 1);
+	dim3 dimGrid(1, 1, 1);
 
 #ifdef BENCHMARK
 	clock_t start = clock();
@@ -336,6 +336,26 @@ void AES::encrypt_ecb_async(const uint *pt, uint *ct, uint n = 1) {
 }
 
 void AES::decrypt(const uint *ct, uint *pt) {
+}
+
+__global__ void guess_key_byte(const uint key, const uint * ct, uint cache_line_cnt) {
+
+    __shared__ uint holder[16];
+
+    if(threadIdx.x < 16)
+        holder[threadIdx.x] = 0;
+    if(threadIdx.x == 0)
+        cache_line_cnt = 0;
+    __syncthreads();
+
+    atomicAdd(&holder[cTd4[ct[threadIdx.x*256] ^ key] >> 4], 1);
+
+    if(threadIdx.x < 16){
+        if( holder[threadIdx.x] != 0 )
+            atomicAdd(&cache_line_cnt, 1);
+    }
+
+
 }
 
 __global__ void AES_encrypt(const uint *pt, uint *ct, uint *rek, uint Nr) {
@@ -429,6 +449,7 @@ __global__ void AES_encrypt(const uint *pt, uint *ct, uint *rek, uint Nr) {
      * apply last round and
      * map cipher state to byte array block:
      */
+     printf("thread %d has indices of %d %d %d %d\n", threadIdx.x, t0, t1, t2, t3);
     ct[offset + 0] =
         (cTe4[(t0 >> 24)       ] & 0xff000000) ^
         (cTe4[(t1 >> 16) & 0xff] & 0x00ff0000) ^

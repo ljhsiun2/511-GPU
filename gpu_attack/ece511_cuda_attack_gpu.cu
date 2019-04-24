@@ -41,7 +41,7 @@ static const uint8_t sbox[256] = {
 
 unsigned char key[] =
 {
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
@@ -115,7 +115,7 @@ int main(int argc, char **argv) {
 // ECE 511 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
   printf("beginning of main routine\n");
   //int fd = open("/usr/local/lib/libcrypto.so", O_RDONLY);
-  int fd = open("/home/databases/gpu_attack/openssl-1.1.0f/libcrypto.so", O_RDONLY);
+  int fd = open("/home/lucash/projects/Flush-Reload/openssl-1.1.0f/libcrypto.so", O_RDONLY);
   size_t size = lseek(fd, 0, SEEK_END);
   if (size == 0)
     exit(-1);
@@ -212,7 +212,7 @@ int main(int argc, char **argv) {
   sum = 0;
   char *hostProbe[] = { 
     //base + 0x1b9280, base + 0x1b9680, base + 0x1b9a80, base + 0x1b9e80
-    base + 0x1d5000, base + 0x1d5400, base + 0x1d5800, base + 0x1d5c00
+    base + 0x1d3a80, base + 0x1d3e80, base + 0x1d4280, base + 0x1d4680
   };
   
   // encryptions for Te0
