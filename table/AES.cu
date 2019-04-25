@@ -319,7 +319,7 @@ void AES::encrypt_ecb(const uint *pt, uint *ct, uint n = 1) {
 	AES_encrypt<<<dimGrid, dimBlock>>>(cpt, cct, ce_sched, Nr);
 
     /* guessing module here */
-    uint guessed_key = 0;
+    uint guessed_key = 244;
     uint key_byte = 1;
     // for(int i = 0; i < 16; i++)
     uint* d_cache_cnt;
