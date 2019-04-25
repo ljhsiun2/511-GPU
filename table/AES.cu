@@ -235,6 +235,7 @@ void AES::makeKey(const byte *cipherKey, uint keySize, uint dir) {
     }
 }
 
+
 void AES::encrypt(const uint *pt, uint *ct) {
 	uint *cpt, *cct;
 	uint size = 4*sizeof(uint);
@@ -251,6 +252,44 @@ void AES::encrypt(const uint *pt, uint *ct) {
 	cudaFree(cct);
 }
 
+__global__ void guess_key_byte(const uint key, const uint key_byte, uint * ct, uint* d_cache_cnt) {
+    __shared__ uint holder[16];
+    __shared__ uint shared_line_cnt;
+
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    int i = x + y * gridDim.x * blockDim.x;
+    int offset = i << 2;
+    // printf("offset = %d\n", offset);
+
+    if(threadIdx.x < 16){
+        holder[threadIdx.x] = 0;
+    }
+    shared_line_cnt = 0;
+    __syncthreads();
+
+    // hacky bit shifting to get char
+    uint ctByte = ct[offset + key_byte/4] >> (24-(key_byte%4)*8);
+    // printf("test = %x%x%x%x\n", test, ct[offset+1], ct[offset+2], ct[offset+3]);
+    // printf("test = %c\n", test);
+    // printf("cTd4 is %c\n", (char)(ctByte ^ key));
+    // uint holder_idx = cTd4[(char)(ctByte ^ key)] >> (24 - (key_byte%4) * 8);
+    uint holder_idx = (char)(ctByte ^ key);
+    // printf("holder idx = %x with table idx %x\n", holder_idx & 0xff, (char) ctByte ^ key);
+    atomicAdd(&holder[(holder_idx & 0xff) >> 4], 1);
+    // printf("test\n");
+    __syncthreads();
+    if(threadIdx.x < 16){
+        // printf("holder[%d] is %u\n", threadIdx.x, holder[threadIdx.x]);
+        if( holder[threadIdx.x] != 0 ){
+            atomicAdd(&shared_line_cnt, 1);
+        }
+    }
+
+    if(threadIdx.x == 0)
+        printf("cache line cnt is %u\n", shared_line_cnt);
+}
+
 void AES::encrypt_ecb(const uint *pt, uint *ct, uint n = 1) {
 	uint *cpt, *cct;
 	uint size = (n << 2)*sizeof(uint);
@@ -262,12 +301,12 @@ void AES::encrypt_ecb(const uint *pt, uint *ct, uint n = 1) {
     struct cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, 0);
 
-	uint blocks, threads = 1;
-	if(n != 1) {
-		threads = (n < prop.maxThreadsPerBlock*2) ? n / 2 : prop.maxThreadsPerBlock;
-	}
-	blocks = n / threads;
-    printf("using %d threads in %d blocks\n", threads, blocks);
+	// uint blocks, threads = 1;
+	// if(n != 1) {
+	// 	threads = (n < prop.maxThreadsPerBlock*2) ? n / 2 : prop.maxThreadsPerBlock;
+	// }
+	// blocks = n / threads;
+    // printf("using %d threads in %d blocks\n", threads, blocks);
 	dim3 dimBlock(32, 1, 1);
 	dim3 dimGrid(1, 1, 1);
 
@@ -278,6 +317,25 @@ void AES::encrypt_ecb(const uint *pt, uint *ct, uint n = 1) {
 	printf("Encryption alone takes %ld/%ld seconds.\n", end-start, CLOCKS_PER_SEC);
 #else
 	AES_encrypt<<<dimGrid, dimBlock>>>(cpt, cct, ce_sched, Nr);
+
+    /* guessing module here */
+    uint guessed_key = 0;
+    uint key_byte = 1;
+    // for(int i = 0; i < 16; i++)
+    uint* d_cache_cnt;
+    uint h_cache_cnt;
+    cudaMalloc(&d_cache_cnt, sizeof(uint));
+
+    int time = clock();
+    guess_key_byte<<<dimGrid, dimBlock>>>(guessed_key, key_byte, cct, d_cache_cnt);
+    cudaDeviceSynchronize();
+    printf("guess key time is %ld\n", clock()-time);
+
+    cudaMemcpy(&h_cache_cnt, d_cache_cnt, sizeof(uint), cudaMemcpyDeviceToHost);
+    cudaFree(d_cache_cnt);
+
+    // printf("Cache line count on GPU is %u\n", h_cache_cnt);
+
 #endif
 
 #ifndef NO_COPYBACK
@@ -338,25 +396,7 @@ void AES::encrypt_ecb_async(const uint *pt, uint *ct, uint n = 1) {
 void AES::decrypt(const uint *ct, uint *pt) {
 }
 
-__global__ void guess_key_byte(const uint key, const uint * ct, uint cache_line_cnt) {
 
-    __shared__ uint holder[16];
-
-    if(threadIdx.x < 16)
-        holder[threadIdx.x] = 0;
-    if(threadIdx.x == 0)
-        cache_line_cnt = 0;
-    __syncthreads();
-
-    atomicAdd(&holder[cTd4[ct[threadIdx.x*256] ^ key] >> 4], 1);
-
-    if(threadIdx.x < 16){
-        if( holder[threadIdx.x] != 0 )
-            atomicAdd(&cache_line_cnt, 1);
-    }
-
-
-}
 
 __global__ void AES_encrypt(const uint *pt, uint *ct, uint *rek, uint Nr) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -449,7 +489,7 @@ __global__ void AES_encrypt(const uint *pt, uint *ct, uint *rek, uint Nr) {
      * apply last round and
      * map cipher state to byte array block:
      */
-     printf("thread %d has indices of %d %d %d %d\n", threadIdx.x, t0, t1, t2, t3);
+     // printf("thread %d has indices of %d %d %d %d\n", threadIdx.x, t0, t1, t2, t3);
     ct[offset + 0] =
         (cTe4[(t0 >> 24)       ] & 0xff000000) ^
         (cTe4[(t1 >> 16) & 0xff] & 0x00ff0000) ^
